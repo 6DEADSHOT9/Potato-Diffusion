@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
-from .utilblocks import ResidualBlock, VaeAttentionBLock
+from utilblocks import ResidualBlock, VaeAttentionBLock
 
 
 class Decoder(nn.Sequential):
