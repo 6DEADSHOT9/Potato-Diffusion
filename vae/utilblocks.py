@@ -86,3 +86,29 @@ class SelfAttentionBlock(nn.Module):
         out = self.out_proj(out)
 
         return out
+    
+class VaeAttentionBLock(nn.Module):
+    def __init__(self, channels: int,  *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.groupnorm_1 = nn.GroupNorm(32, channels)
+        self.attention = SelfAttentionBlock(1, channels)
+    
+    def forward(self, x:torch.Tensor) -> torch.Tensor:
+
+        residue = x
+
+        # (Batch size, Channels, Height, Width)
+        n, c, h, w = x.shape
+
+        # (Batch size, Channels, Height, Width) -> (Batch size, Channels, Height * Width) -> (Batch size, Height * Width, Channels)
+        x = x.view(n, c, h*w).transpose(-1, -2)
+
+        x = self.attention(x)
+
+        # (Batch size, Height * Width, Channels) -> (Batch size, Channels, Height * Width) -> (Batch size, Channels, Height, Width)
+        x = x.transpose(-1, -2).view(n, c, h, w)
+
+        x = x + residue
+        
+        return x

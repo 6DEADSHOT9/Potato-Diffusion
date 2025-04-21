@@ -1,5 +1,9 @@
 import torch
 from torch.nn import functional as F
+
+import vae.encoder as encoder
+
+
 def main():
     print("Hello from sdiff!")
     x = torch.ones(1, 1, 1, 1)
