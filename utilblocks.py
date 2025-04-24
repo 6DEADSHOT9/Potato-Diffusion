@@ -4,7 +4,7 @@ from torch.nn import functional as F
 import math
 
 class ResidualBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, *args, **kwargs):
+    def __init__(self, in_channels:int, out_channels:int, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.conv2d_1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
@@ -39,7 +39,7 @@ class ResidualBlock(nn.Module):
 
 
 class SelfAttentionBlock(nn.Module):
-    def __init__(self,n_heads: int, d_embed: int, in_proj_bias = True, out_proj_bias = True, *args, **kwargs):
+    def __init__(self,n_heads: int, d_embed: int, in_proj_bias:bool = True, out_proj_bias:bool = True, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
         self.in_proj = nn.Linear(d_embed, 3*d_embed, bias = in_proj_bias)
@@ -86,7 +86,55 @@ class SelfAttentionBlock(nn.Module):
         out = self.out_proj(out)
 
         return out
-    
+
+
+class CrossAttentionBlock(nn.Module):
+
+    def __init__(self, n_heads:int, d_embed:int, d_cross:int, in_proj_bias:bool = True, out_proj_bias:bool = True, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.q_proj = nn.linear(d_embed, d_embed, bias = in_proj_bias)
+        self.k_proj = nn.Linear(d_cross, d_embed, bias = in_proj_bias)
+        self.v_proj = nn.Linear(d_cross, d_embed, bias = in_proj_bias)
+
+        self.out_proj = nn.Linear(d_embed, d_embed, bias = out_proj_bias)
+
+        self.n_heads = n_heads
+        self.d_head = d_embed // n_heads
+
+    def forward(self, x:torch.Tensor, y:torch.Tensor) -> torch.Tensor:
+        # x: latent: (Batch size, Seq len, Dim_Q)
+        # y: cross: (Batch size, Seq len, Dim_KV) = (Batch size, 77, 768)
+
+        input_shape = x.shape
+        batch_size, seq_len, d_embed = input_shape
+
+        interim_shape = (batch_size, -1, self.n_heads, self.d_head)
+
+        q = self.q_proj(x) # adding weight matrices
+        k = self.k_proj(y) # adding weight matrices
+        v = self.v_proj(y) # adding weight matrices
+
+        # (Batch size, Seq len, Heads, d_head) -> (Batch size, Heads, Seq len, d_head)
+        q = q.view(interim_shape).transpose(1,2)
+        k = k.view(interim_shape).transpose(1,2)
+        v = v.view(interim_shape).transpose(1,2)
+
+        # (Batch size, Heads, Seq len, d_head) @ (Batch size, Heads, d_head, Seq len) -> (Batch size, Heads, Seq len, Seq len)
+        weights = q @ k.transpose(-1, -2)
+        weights /= math.sqrt(self.d_head)
+        weights = F.softmax(weights, dim=-1)
+
+        # (Batch size, Heads, Seq len, Seq len) @ (Batch size, Heads, Seq len, d_head) -> (Batch size, Heads, Seq len, d_head)
+        output = weights @ v
+        output = output.transpose(1, 2).contiguous() # (Batch size, Seq len, Heads, d_head)
+        output = output.view(input_shape)            # (Batch size, Seq len, d_embed)
+
+        output = self.out_proj(output)               # adding weight matrices
+        
+        return output
+
+
 class VaeAttentionBLock(nn.Module):
     def __init__(self, channels: int,  *args, **kwargs):
         super().__init__(*args, **kwargs)
