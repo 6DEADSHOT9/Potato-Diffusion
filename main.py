@@ -5,33 +5,20 @@ import vae.encoder as encoder
 
 
 def main():
-    print("Hello from sdiff!")
-    x = torch.ones(1, 1, 1, 1)
-    print(x, end="\n\n")
+    betas_start = 0.0
+    betas_end = 10.0
+    num_training_steps = 10
+    arr = torch.linspace(betas_start ** 0.5, betas_end ** 0.5, num_training_steps, dtype=torch.float32) ** 2
+    arr2 = torch.linspace(betas_start, betas_end, num_training_steps, dtype=torch.float32)
+    print(arr)
+    print(arr2)
+    print(arr == arr2)
 
-    # # pad last dimension "at the end"
-    # x1 = F.pad(x, (0, 0, 0, 0, 0, 0, 1, 0))
-    # print(x1, end="\n\n")
-
-    # # pad last dimension "at the front"
-    # x2 = F.pad(x, (0, 0, 0, 0, 0, 0, 0, 1))
-    # print(x2, end="\n\n")
-
-    # # pad last dimension on both sides with two zeros
-    # x3 = F.pad(x, (0, 0, 0, 0, 0, 0, 2, 2))
-    # print(x3, end="\n\n")
-
-    # # pad dim1 "at the front" with 4 values
-    # x4 = F.pad(x, (0, 0, 4, 0, 0, 0, 0, 0))
-    # print(x4, end="\n\n")
-
-    x5 = F.pad(x, (0, 0, 0, 1))
-    print(f'x5:{x5}', end="\n\n")
-
-    x6 = F.pad(x, (0, 0, 0, 1, 0 ,0, 0, 0))
-    print(f'x6:{x6}', end="\n\n")
-
-    print(f"x5==x6: {torch.equal(x5, x6)}")
-
+    for i in range(num_training_steps):
+        # print(f"i: {i}, arr[i]: {arr[i]}, arr2[i]: {arr2[i]}, arr[i] == arr2[i]: {arr[i] == arr2[i]}")
+        print(f"({i},{arr[i]})", end=", ")
+    print()
+    for i in range(num_training_steps):
+        print(f"({i},{arr2[i]})", end=", ")
 if __name__ == "__main__":
     main()
